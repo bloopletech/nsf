@@ -11,6 +11,11 @@ module Nsf
       @nodes = nodes
     end
 
+    def title
+      title_node = nodes.detect { |n| n.is_a?(Heading) && n.level == 1 }
+      (title_node && title_node.text.present?) ? title_node.text : nil
+    end
+
     def self.from(text, format)
       self.send("from_#{format}", text)
     end
@@ -28,11 +33,14 @@ module Nsf
       lines = text.split("\n")
       lines.each do |line|
         if line.blank? || line == lines.last || (current_text.present? && ((lsp(line) < lsp(prev_line))))
-          if in_paragraph
+          if in_paragraph || line == lines.last
             in_paragraph = false
 
+            current_text << " " << line unless line.blank?
+
             if current_text != ""
-              blocks << current_text.gsub(/\s+/, ' ').strip
+              paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
+              blocks << paragraph_text if paragraph_text.present?
               current_text = ""
             end
           end
@@ -57,7 +65,7 @@ module Nsf
 
     BLOCK_PASSTHROUGH_TAGS = %w(div form table tbody thead tfoot tr)
 
-    BLOCK_INITIATING_TAGS = %w(article aside body header nav p pre section td th)
+    BLOCK_INITIATING_TAGS = %w(article aside body blockquote header nav p pre section td th)
 
     def self.from_html(text)
       iterate = lambda do |nodes, blocks, current_text|
@@ -75,7 +83,7 @@ module Nsf
           #Handle repeated brs by making a paragraph break
           if node.node_name.downcase == 'br'
             if just_appended_br
-              paragraph_text = current_text.gsub(/\s+/, ' ').strip
+              paragraph_text = current_text.gsub(/[[:space]]+/, ' ').strip
               blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
               current_text.replace("")
             else
@@ -92,7 +100,7 @@ module Nsf
 
           #These tags terminate the current paragraph, if present, and start a new paragraph
           if BLOCK_INITIATING_TAGS.include?(node.node_name.downcase)
-            paragraph_text = current_text.gsub(/\s+/, ' ').strip
+            paragraph_text = current_text.gsub(/[[:space]]+/, ' ').strip
             blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
             current_text.replace("")
 
@@ -102,17 +110,21 @@ module Nsf
         end
       end
 
+      blocks = []
+
       doc = Nokogiri::HTML(text)
 
-      blocks = []
+      title_tag = doc.css("title").first
+      blocks << Heading.new("# #{title_tag.inner_text}") if title_tag
+      
       current_text = ""
 
       iterate.call(doc.root.children, blocks, current_text)
 
       #Handle last paragraph of text
-      paragraph_text = current_text.gsub(/\s+/, ' ').strip
+      paragraph_text = current_text.gsub(/[[:space]]+/, ' ').strip
       blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
-      
+
       Document.new(blocks)
     end
 
@@ -130,7 +142,7 @@ module Nsf
   
     # LSP == Leading SPaces
     def self.lsp(str)
-      str =~ /^(\s+)/
+      str =~ /^([[:space]]+)/
       $1 ? $1.length : 0
     end
 
@@ -168,7 +180,7 @@ module Nsf
     #Sourced from ActionView::Helpers::TextHelper#word_wrap
     def word_wrap(text, line_width)
       text.split("\n").collect do |line|
-        line.length > line_width ? line.gsub(/(.{1,#{line_width}})(\s+|$)/, "\\1\n").strip : line
+        line.length > line_width ? line.gsub(/(.{1,#{line_width}})([[:space]]+|$)/, "\\1\n").strip : line
       end * "\n"
     end
   end
