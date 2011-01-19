@@ -83,7 +83,7 @@ module Nsf
           #Handle repeated brs by making a paragraph break
           if node.node_name.downcase == 'br'
             if just_appended_br
-              paragraph_text = current_text.gsub(/[[:space]]+/, ' ').strip
+              paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
               blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
               current_text.replace("")
             else
@@ -100,7 +100,7 @@ module Nsf
 
           #These tags terminate the current paragraph, if present, and start a new paragraph
           if BLOCK_INITIATING_TAGS.include?(node.node_name.downcase)
-            paragraph_text = current_text.gsub(/[[:space]]+/, ' ').strip
+            paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
             blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
             current_text.replace("")
 
@@ -122,7 +122,7 @@ module Nsf
       iterate.call(doc.root.children, blocks, current_text)
 
       #Handle last paragraph of text
-      paragraph_text = current_text.gsub(/[[:space]]+/, ' ').strip
+      paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
       blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
 
       Document.new(blocks)
@@ -142,7 +142,7 @@ module Nsf
   
     # LSP == Leading SPaces
     def self.lsp(str)
-      str =~ /^([[:space]]+)/
+      str =~ /^([[:space:]]+)/
       $1 ? $1.length : 0
     end
 
@@ -179,8 +179,8 @@ module Nsf
     private
     #Sourced from ActionView::Helpers::TextHelper#word_wrap
     def word_wrap(text, line_width)
-      text.split("\n").collect do |line|
-        line.length > line_width ? line.gsub(/(.{1,#{line_width}})([[:space]]+|$)/, "\\1\n").strip : line
+      o = text.split("\n").collect do |line|
+        line.length > line_width ? line.gsub(/(.{1,#{line_width}})([[:space:]]+|$)/, "\\1\n").strip : line
       end * "\n"
     end
   end
