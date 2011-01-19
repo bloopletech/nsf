@@ -68,11 +68,12 @@ module Nsf
     BLOCK_INITIATING_TAGS = %w(article aside body blockquote header nav p pre section td th)
 
     def self.from_html(text)
-      iterate = lambda do |nodes, blocks, current_text|
+      iterate = lambda do |nodes, blocks, current_text, just_opened_style|
         just_appended_br = false
         nodes.map do |node|
           if node.text?
-            current_text << " " << node.inner_text
+            current_text << (just_opened_style ? "" : " ") << node.inner_text
+            just_opened_style = false
             next
           end
 
@@ -91,10 +92,24 @@ module Nsf
             end
             next
           end
+=begin
+          if %w(i em).include?(node.node_name.downcase)
+            current_text << " _"
+            iterate.call(node.children, blocks, current_text, true)
+            current_text << "_"
+            next
+          end
 
+          if %w(b strong).include?(node.node_name.downcase)
+            current_text << " *"
+            iterate.call(node.children, blocks, current_text, true)
+            current_text << "*"
+            next
+          end
+=end
           #Pretend that the children of this node were siblings of this node (move them one level up the tree)
           if (TEXT_TAGS + BLOCK_PASSTHROUGH_TAGS).include?(node.node_name.downcase)
-            iterate.call(node.children, blocks, current_text)
+            iterate.call(node.children, blocks, current_text, just_opened_style)
             next
           end
 
@@ -104,7 +119,7 @@ module Nsf
             blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
             current_text.replace("")
 
-            iterate.call(node.children, blocks, current_text)
+            iterate.call(node.children, blocks, current_text, just_opened_style)
             next
           end
         end
@@ -119,7 +134,7 @@ module Nsf
       
       current_text = ""
 
-      iterate.call(doc.root.children, blocks, current_text)
+      iterate.call(doc.root.children, blocks, current_text, false)
 
       #Handle last paragraph of text
       paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
