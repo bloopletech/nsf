@@ -70,22 +70,24 @@ module Nsf
     ENHANCERS = { %w(b strong) => "*", %(i em) => "_" }
 
     def self.from_html(text)
-      iterate = lambda do |nodes, blocks, current_text, just_opened_style|
+      iterate = lambda do |nodes, blocks, current_text|
         just_appended_br = false
         nodes.map do |node|
+          node_name = node.node_name.downcase
+        
           if node.text?
             text = node.inner_text
-            current_text << (text[0..0] =~ /[[:punct:]]/ ? "" : " ") << text
+            current_text << text
             just_opened_style = false
             next
           end
-
-          if node.node_name.downcase == 'head'
+          
+          if node_name == 'head'
             next
           end
-
+          
           #Handle repeated brs by making a paragraph break
-          if node.node_name.downcase == 'br'
+          if node_name == 'br'
             if just_appended_br
               paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
               blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
@@ -93,37 +95,33 @@ module Nsf
             else
               just_appended_br = true
             end
-            next
+            next nodes_start
           end
           
-          ENHANCERS.each_pair do |tags, nsf_rep|
-            if tags.include?(node.node_name.downcase)
-              previous_text = current_text.dup.strip
-              current_text.replace("")
-
-              iterate.call(node.children, blocks, current_text, true)
-              inner_text = current_text.strip
-              
-              current_text.replace(previous_text << (previous_text[-1..-1] =~ /([[:alnum:]\.,])/ ? " " : "") << nsf_rep <<
-               inner_text << nsf_rep << (inner_text[-1..-1] =~ /[[:alnum:]]/ ? " " : ""))
-              
-              next
+          if ENHANCERS.keys.flatten.include?(node_name)
+            ENHANCERS.each_pair do |tags, nsf_rep|
+              if tags.include?(node_name)
+                new_text = ""
+                iterate.call(node.children, blocks, new_text)
+                current_text << nsf_rep << new_text << nsf_rep
+              end
             end
+            next
           end
           
           #Pretend that the children of this node were siblings of this node (move them one level up the tree)
-          if (TEXT_TAGS + BLOCK_PASSTHROUGH_TAGS).include?(node.node_name.downcase)
-            iterate.call(node.children, blocks, current_text, just_opened_style)
+          if (TEXT_TAGS + BLOCK_PASSTHROUGH_TAGS).include?(node_name)
+            iterate.call(node.children, blocks, current_text)
             next
           end
-
+          
           #These tags terminate the current paragraph, if present, and start a new paragraph
-          if BLOCK_INITIATING_TAGS.include?(node.node_name.downcase)
+          if BLOCK_INITIATING_TAGS.include?(node_name)
             paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
             blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
             current_text.replace("")
-
-            iterate.call(node.children, blocks, current_text, just_opened_style)
+            
+            iterate.call(node.children, blocks, current_text)
             next
           end
         end
@@ -138,7 +136,7 @@ module Nsf
       
       current_text = ""
 
-      iterate.call(doc.root.children, blocks, current_text, false)
+      iterate.call(doc.root.children, blocks, current_text)
 
       #Handle last paragraph of text
       paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
