@@ -66,13 +66,16 @@ module Nsf
     BLOCK_PASSTHROUGH_TAGS = %w(div form table tbody thead tfoot tr)
 
     BLOCK_INITIATING_TAGS = %w(article aside body blockquote header nav p pre section td th)
+    
+    ENHANCERS = { %w(b strong) => "*", %(i em) => "_" }
 
     def self.from_html(text)
       iterate = lambda do |nodes, blocks, current_text, just_opened_style|
         just_appended_br = false
         nodes.map do |node|
           if node.text?
-            current_text << (just_opened_style ? "" : " ") << node.inner_text
+            text = node.inner_text
+            current_text << (text[0..0] =~ /[[:punct:]]/ ? "" : " ") << text
             just_opened_style = false
             next
           end
@@ -92,21 +95,22 @@ module Nsf
             end
             next
           end
-=begin
-          if %w(i em).include?(node.node_name.downcase)
-            current_text << " _"
-            iterate.call(node.children, blocks, current_text, true)
-            current_text << "_"
-            next
-          end
+          
+          ENHANCERS.each_pair do |tags, nsf_rep|
+            if tags.include?(node.node_name.downcase)
+              previous_text = current_text.dup.strip
+              current_text.replace("")
 
-          if %w(b strong).include?(node.node_name.downcase)
-            current_text << " *"
-            iterate.call(node.children, blocks, current_text, true)
-            current_text << "*"
-            next
+              iterate.call(node.children, blocks, current_text, true)
+              inner_text = current_text.strip
+              
+              current_text.replace(previous_text << (previous_text[-1..-1] =~ /([[:alnum:]\.,])/ ? " " : "") << nsf_rep <<
+               inner_text << nsf_rep << (inner_text[-1..-1] =~ /[[:alnum:]]/ ? " " : ""))
+              
+              next
+            end
           end
-=end
+          
           #Pretend that the children of this node were siblings of this node (move them one level up the tree)
           if (TEXT_TAGS + BLOCK_PASSTHROUGH_TAGS).include?(node.node_name.downcase)
             iterate.call(node.children, blocks, current_text, just_opened_style)
