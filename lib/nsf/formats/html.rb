@@ -42,7 +42,7 @@ module Nsf
             else
               just_appended_br = true
             end
-            next nodes_start
+            next
           end
           
           if ENHANCERS.keys.flatten.include?(node_name)
