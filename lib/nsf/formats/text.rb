@@ -3,12 +3,13 @@ module Nsf
     def self.from_text(text)
       blocks = []
 
-      in_paragraph = true
+      in_paragraph = false
+      first_line = true
       current_text = ""
       prev_line = ""
       lines = text.split("\n")
       lines.each do |line|
-        if line.blank? || line == lines.last || (current_text.present? && ((lsp(line) < lsp(prev_line))))
+        if line.blank? || line == lines.last || (current_text.present? && !first_line && (lsp(line) < lsp(prev_line)))
           if in_paragraph || line == lines.last
             in_paragraph = false
 
@@ -23,6 +24,7 @@ module Nsf
         elsif line =~ /^#+ /
           blocks << line
         else
+          first_line = !in_paragraph
           in_paragraph = true
           current_text << " " << line
           prev_line = line

@@ -1,3 +1,5 @@
+#HTML depends on text support
+
 require 'cgi'
 require 'nokogiri'
 
@@ -13,6 +15,8 @@ module Nsf
     BLOCK_PASSTHROUGH_TAGS = %w(div form table tbody thead tfoot tr)
 
     BLOCK_INITIATING_TAGS = %w(article aside body blockquote header nav p pre section td th)
+
+    BLOCK_PLAIN_TEXT_TAGS = %w(pre plaintext listing xmp)
     
     ENHANCERS = { %w(b strong) => "*", %(i em) => "_" }
 
@@ -69,6 +73,12 @@ module Nsf
             current_text.replace("")
             
             iterate.call(node.children, blocks, current_text)
+
+            if BLOCK_PLAIN_TEXT_TAGS.include?(node_name)
+              blocks += Nsf::Document.from_text(current_text).nodes
+              current_text.replace("")
+            end
+
             next
           end
         end
