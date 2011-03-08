@@ -75,7 +75,7 @@ module Nsf
             iterate.call(node.children, blocks, current_text)
 
             if BLOCK_PLAIN_TEXT_TAGS.include?(node_name)
-              blocks += Nsf::Document.from_text(current_text).nodes
+              blocks.concat(Nsf::Document.from_text(current_text).nodes)
               current_text.replace("")
             end
 
@@ -89,10 +89,10 @@ module Nsf
       doc = Nokogiri::HTML(text)
 
       title_tag = doc.css("title").first
+
       blocks << Heading.new("# #{title_tag.inner_text}") if title_tag
       
       current_text = ""
-
       iterate.call(doc.root.children, blocks, current_text)
 
       #Handle last paragraph of text
