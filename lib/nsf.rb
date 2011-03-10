@@ -31,9 +31,23 @@ module Nsf
   end
      
   class Paragraph
-    attr_accessor :text
+    attr_reader :text
 
     def initialize(text)
+      stack = []
+
+      text.each_char do |char|
+        if char == '*' || char == '_'
+          if stack[-1] == char
+            stack.pop
+          else
+            stack.push char
+          end
+        end
+      end
+
+      raise "Improper nesting of bold and italic modifiers in paragraph #{text}" if stack.length > 2
+
       @text = text
     end
   end
@@ -42,7 +56,7 @@ module Nsf
   end
 
   class Heading
-    attr_accessor :text, :level
+    attr_reader :text, :level
 
     def initialize(text)
       text =~ /^(#+) (.*?)$/

@@ -109,13 +109,7 @@ module Nsf
      
   class Paragraph
     def to_html
-      #in_bold = false
-      #in_italic = false
-
-      out = @text
-      #out = out.gsub(/(\A\*| \*)(.*?)(\*\Z|\* )/, "<b>\\2</b>") #Need to rethink
-      
-      "<p>#{out}</p>"
+      "<p>#{CGI.escapeHTML(@text).gsub(/\*(.*?)\*/, "<b>\\1</b>").gsub(/_(.*?)_/, "<i>\\1</i>")}</p>"
     end
   end
 
