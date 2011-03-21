@@ -7,13 +7,14 @@ module Nsf
       nodes.each do |node|
         doc.paragraph << node.to_rtf
       end
+      
       doc.to_rtf
     end
   end
      
   class Paragraph
     def to_rtf
-      @text
+      @text.gsub("\n", " ")
     end
   end
 
