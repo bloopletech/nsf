@@ -69,3 +69,4 @@ end
 require 'nsf/formats/nsf'
 require 'nsf/formats/text'
 require 'nsf/formats/html' #HTML depends on text support
+require 'nsf/formats/rtf'
