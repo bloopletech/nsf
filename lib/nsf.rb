@@ -20,11 +20,11 @@ module Nsf
     def self.from_blocks(blocks)
       self.new(blocks.map do |block|
         if block =~ /^#+ /
-          Heading.new(block)
+          Heading.from_nsf(block)
         elsif block =~ /^    /
           Fixedblock.from_nsf(block)
         else
-          Paragraph.new(block)
+          Paragraph.from_nsf(block)
         end
       end)
     end
@@ -33,22 +33,14 @@ module Nsf
   class Paragraph
     attr_reader :text
 
+    BOLD_ITALIC_REGEX = /(?:(\W|^)(\*)|(\*)(\W|$)|(\W|^)(_)|(_)(\W|$))/
+
     def initialize(text)
-      stack = []
-
-      text.each_char do |char|
-        if char == '*' || char == '_'
-          if stack[-1] == char
-            stack.pop
-          else
-            stack.push char
-          end
-        end
-      end
-
-      raise "Improper nesting of bold and italic modifiers in paragraph #{text}" if stack.length > 2
-
       @text = text
+    end
+
+    def self.from_nsf(text)
+      self.new(text.gsub(/[[:space:]]+/, ' ').strip)
     end
   end
 
@@ -58,10 +50,14 @@ module Nsf
   class Heading
     attr_reader :text, :level
 
-    def initialize(text)
+    def initialize(text, level)
+      @text = text
+      @level = level
+    end
+
+    def self.from_nsf(text)
       text =~ /^(#+) (.*?)$/
-      @text = $2
-      @level = $1.length
+      self.new($2, $1.length)  
     end
   end
 end

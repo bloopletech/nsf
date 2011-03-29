@@ -90,7 +90,7 @@ module Nsf
 
       title_tag = doc.css("title").first
 
-      blocks << Heading.new("# #{title_tag.inner_text}") if title_tag
+      blocks << Heading.new(title_tag.inner_text, 1) if title_tag
       
       current_text = ""
       iterate.call(doc.root.children, blocks, current_text)
@@ -109,7 +109,24 @@ module Nsf
      
   class Paragraph
     def to_html
-      "<p>#{CGI.escapeHTML(@text).gsub(/\*(.*?)\*/, "<b>\\1</b>").gsub(/_(.*?)_/, "<i>\\1</i>")}</p>"
+      out = CGI.escapeHTML(@text).split(BOLD_ITALIC_REGEX)
+      
+      in_bold = false
+      in_italic = false
+
+      out.map! do |element|        
+        if element == "*"
+          in_bold = !in_bold
+          in_bold ? "<b>" : "</b>" #Note that in_bold has been inverted, so this is inverted as well
+        elsif element == "_"
+          in_italic = !in_italic
+          in_italic ? "<i>" : "</i>" #Note that in_italic has been inverted, so this is inverted as well
+        else
+          element
+        end
+      end
+      
+      "<p>#{out.join}</p>"
     end
   end
 
