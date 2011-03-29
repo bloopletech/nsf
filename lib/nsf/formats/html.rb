@@ -110,19 +110,21 @@ module Nsf
   class Paragraph
     def to_html
       out = CGI.escapeHTML(@text).split(BOLD_ITALIC_REGEX)
-      
-      in_bold = false
-      in_italic = false
 
-      out.map! do |element|        
-        if element == "*"
-          in_bold = !in_bold
-          in_bold ? "<b>" : "</b>" #Note that in_bold has been inverted, so this is inverted as well
-        elsif element == "_"
-          in_italic = !in_italic
-          in_italic ? "<i>" : "</i>" #Note that in_italic has been inverted, so this is inverted as well
-        else
-          element
+      if ((out.select { |element| element == "*" }).length % 2 == 0) && ((out.select { |element| element == "_" }).length % 2 == 0)
+        in_bold = false
+        in_italic = false
+
+        out.map! do |element|        
+          if element == "*"
+            in_bold = !in_bold
+            in_bold ? "<b>" : "</b>" #Note that in_bold has been inverted, so this is inverted as well
+          elsif element == "_"
+            in_italic = !in_italic
+            in_italic ? "<i>" : "</i>" #Note that in_italic has been inverted, so this is inverted as well
+          else
+            element
+          end
         end
       end
       
