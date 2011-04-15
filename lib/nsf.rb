@@ -10,9 +10,9 @@ module Nsf
 
     def title
       title_node = nodes.detect { |n| n.is_a?(Heading) && n.level == 1 }
-      if (title_node && title_node.text.present?)
+      if title_node && title_node.text.present?
         title_node.text
-      elsif nodes.first.text.length < 100
+      elsif nodes.first && (nodes.first.text.length < 100)
         nodes.first.text
       else
         nil
