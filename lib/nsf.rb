@@ -19,6 +19,10 @@ module Nsf
       end
     end
 
+    def toc
+      nodes.select { |n| n.is_a?(Nsf::Heading) }
+    end
+
     def self.from(text, format)
       self.send("from_#{format}", text)
     end

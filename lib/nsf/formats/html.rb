@@ -140,7 +140,11 @@ module Nsf
 
   class Heading
     def to_html
-      "<h#{level}>#{CGI.escapeHTML(text)}</h#{level}>"
+      "<h#{level} id=\"#{ref_html}\">#{CGI.escapeHTML(text)}</h#{level}>"
+    end
+
+    def ref_html
+      "heading_#{level}_#{CGI.escapeHTML(text)}"
     end
   end
 end
