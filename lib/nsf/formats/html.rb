@@ -67,12 +67,18 @@ module Nsf
           end
           
           #These tags terminate the current paragraph, if present, and start a new paragraph
-          if BLOCK_INITIATING_TAGS.include?(node_name)
+          if (BLOCK_INITIATING_TAGS + HEADING_TAGS).include?(node_name)
             paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
             blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
             current_text.replace("")
             
             iterate.call(node.children, blocks, current_text)
+
+            if HEADING_TAGS.include?(node_name)
+              heading_text = current_text.gsub(/[[:space:]]+/, ' ').strip
+              blocks << Heading.new(heading_text, node_name[1..-1].to_i)
+              current_text.replace("")
+            end
 
             if BLOCK_PLAIN_TEXT_TAGS.include?(node_name)
               blocks.concat(Nsf::Document.from_text(current_text).nodes)
