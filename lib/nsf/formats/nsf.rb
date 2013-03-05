@@ -11,7 +11,8 @@ module Nsf
      
   class Paragraph
     def to_nsf
-      word_wrap(@text, 80)
+      @text
+#      word_wrap(@text, 80)
     end
 
     private

@@ -12,98 +12,99 @@ module Nsf
 
     HEADING_TAGS = %w(h1 h2 h3 h4 h5 h6)
 
-    BLOCK_PASSTHROUGH_TAGS = %w(div form table tbody thead tfoot tr)
+    BLOCK_PASSTHROUGH_TAGS = %w(div dl form ol table tbody thead tfoot tr ul)
 
-    BLOCK_INITIATING_TAGS = %w(article aside body blockquote header nav p pre section td th)
+    BLOCK_INITIATING_TAGS = %w(article aside body blockquote dd dt header li nav p pre section td th ul)
 
     BLOCK_PLAIN_TEXT_TAGS = %w(pre plaintext listing xmp)
     
     ENHANCERS = { %w(b strong) => "*", %(i em) => "_" }
 
     def self.from_html(text)
-      iterate = lambda do |nodes, blocks, current_text|
+      iterate = lambda do |node, blocks, current_text|
         just_appended_br = false
-        nodes.map do |node|
-          node_name = node.node_name.downcase
-        
-          if node.text?
-            text = node.inner_text
-            current_text << text
-            just_opened_style = false
-            next
-          end
-          
-          if node_name == 'head'
-            next
-          end
-          
-          #Handle repeated brs by making a paragraph break
-          if node_name == 'br'
-            if just_appended_br
-              paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
-              blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
-              current_text.replace("")
-            else
-              just_appended_br = true
-            end
-            next
-          end
-          
-          if ENHANCERS.keys.flatten.include?(node_name)
-            ENHANCERS.each_pair do |tags, nsf_rep|
-              if tags.include?(node_name)
-                new_text = ""
-                iterate.call(node.children, blocks, new_text)
-                current_text << nsf_rep << new_text << nsf_rep
-              end
-            end
-            next
-          end
-          
-          #Pretend that the children of this node were siblings of this node (move them one level up the tree)
-          if (TEXT_TAGS + BLOCK_PASSTHROUGH_TAGS).include?(node_name)
-            iterate.call(node.children, blocks, current_text)
-            next
-          end
-          
-          #These tags terminate the current paragraph, if present, and start a new paragraph
-          if (BLOCK_INITIATING_TAGS + HEADING_TAGS).include?(node_name)
+        node_name = node.node_name.downcase
+        #puts "node_name: #{node_name}, current_text: #{current_text}"
+
+        return if node.attributes.key?("data-nsf-ignore") && node.attributes["data-nsf-ignore"].value == "true"
+
+        return if node_name == 'head'
+
+        if node.text?
+          text = node.inner_text
+          current_text << text
+          return
+        end
+
+        #Handle repeated brs by making a paragraph break
+        if node_name == 'br'
+          if just_appended_br
             paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
             blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
             current_text.replace("")
-            
-            iterate.call(node.children, blocks, current_text)
-
-            if HEADING_TAGS.include?(node_name)
-              heading_text = current_text.gsub(/[[:space:]]+/, ' ').strip
-              blocks << Heading.new(heading_text, node_name[1..-1].to_i)
-              current_text.replace("")
-            end
-
-            if BLOCK_PLAIN_TEXT_TAGS.include?(node_name)
-              blocks.concat(Nsf::Document.from_text(current_text).nodes)
-              current_text.replace("")
-            end
-
-            next
+          else
+            just_appended_br = true
           end
+          return
         end
+
+        #These tags terminate the current paragraph, if present, and start a new paragraph
+        if BLOCK_INITIATING_TAGS.include?(node_name)
+          #puts "initiated"
+          node.children.each { |n| iterate.call(n, blocks, current_text) }
+
+          paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
+          blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
+          current_text.replace("")
+            
+
+#          if BLOCK_PLAIN_TEXT_TAGS.include?(node_name)
+#            blocks.concat(Nsf::Document.from_text(current_text).nodes)
+#            current_text.replace("")
+#          end
+
+          return
+        end
+        
+        if ENHANCERS.keys.flatten.include?(node_name)
+          ENHANCERS.each_pair do |tags, nsf_rep|
+            if tags.include?(node_name)
+              new_text = ""
+              node.children.each { |n| iterate.call(n, new_text) }
+              current_text << nsf_rep << new_text << nsf_rep
+            end
+          end
+          return
+        end
+        
+        #Pretend that the children of this node were siblings of this node (move them one level up the tree)
+        if (TEXT_TAGS + BLOCK_PASSTHROUGH_TAGS).include?(node_name)
+          node.children.each { |n| iterate.call(n, blocks, current_text) }
+          return
+        end
+
+        if HEADING_TAGS.include?(node_name)
+          node.children.each { |n| iterate.call(n, blocks, current_text) }
+
+          heading_text = current_text.gsub(/[[:space:]]+/, ' ').strip
+          blocks << Heading.new(heading_text, node_name[1..-1].to_i) if heading_text.present?
+          current_text.replace("")
+          return
+        end
+
+        node.children.each { |n| iterate.call(n, blocks, current_text) }
       end
 
       blocks = []
 
       doc = Nokogiri::HTML(text)
 
+      iterate.call(doc.root, blocks, "")
+
       title_tag = doc.css("title").first
-
-      blocks << Heading.new(title_tag.inner_text, 1) if title_tag
-      
-      current_text = ""
-      iterate.call(doc.root.children, blocks, current_text)
-
-      #Handle last paragraph of text
-      paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
-      blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
+      if title_tag && !blocks.detect { |b| b.is_a?(Heading) && b.level == 1 }
+        blocks.unshift(Heading.new(title_tag.inner_text, 1))
+      end
 
       Document.new(blocks)
     end
@@ -114,8 +115,8 @@ module Nsf
   end
      
   class Paragraph
-    def to_html
-      out = CGI.escapeHTML(@text).split(BOLD_ITALIC_REGEX)
+    def to_html_fragment(escape = true)
+      out = (escape ? CGI.escapeHTML(@text) : @text).split(BOLD_ITALIC_REGEX)
 
       if ((out.select { |element| element == "*" }).length % 2 == 0) && ((out.select { |element| element == "_" }).length % 2 == 0)
         in_bold = false
@@ -133,8 +134,12 @@ module Nsf
           end
         end
       end
-      
-      "<p>#{out.join}</p>"
+
+      out.join
+    end
+
+    def to_html
+      "<p>#{to_html_fragment}</p>"
     end
   end
 
