@@ -13,7 +13,7 @@ module Nsf
       pdf.font_families.update("Open Sans" => {
         :normal => "#{fd}/OpenSans-Regular.ttf",
         :bold => "#{fd}/OpenSans-Bold.ttf",
-        :italic => "#{fd}/OpenSans-Italic.tff",
+        :italic => "#{fd}/OpenSans-Italic.ttf",
         :bold_italic => "#{fd}/OpenSans-BoldItalic.ttf"
       })
       pdf.font "Open Sans"
