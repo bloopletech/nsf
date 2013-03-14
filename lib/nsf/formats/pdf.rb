@@ -8,9 +8,13 @@ module Nsf
     PDF_LEADING = 0.4
     def to_pdf(base_font_size = PDF_DEFAULT_FONT_SIZE)
       pdf = Prawn::Document.new(:page_size => "A4", :margin => (base_font_size * 2.22222).round)
+
+      fd = "#{File.dirname(__FILE__)}/fonts"
       pdf.font_families.update("Open Sans" => {
-        :normal => "#{File.dirname(__FILE__)}/fonts/OpenSans-Regular.ttf",
-        :bold => "#{File.dirname(__FILE__)}/fonts/OpenSans-Bold.ttf"
+        :normal => "#{fd}/OpenSans-Regular.ttf",
+        :bold => "#{fd}/OpenSans-Bold.ttf",
+        :italic => "#{fd}/OpenSans-Italic.tff",
+        :bold_italic => "#{fd}/OpenSans-BoldItalic.ttf"
       })
       pdf.font "Open Sans"
       pdf.font_size = base_font_size
