@@ -2,10 +2,18 @@
 
 require "nsf"
 
-content = File.read(ARGV.first)
-doc = Nsf::Document.from_nsf(content)
-File.open("#{ARGV.first}.html", "w") do |f|
-  f << <<-EOF
+ARGV.each do |filename|
+  if !File.exist?(filename)
+    puts "Could not find #{filename}, skipping"
+    next
+  end
+
+  content = File.read(ARGV.first)
+
+  doc = Nsf::Document.from_nsf(content)
+
+  File.open("#{ARGV.first}.html", "w") do |f|
+    f << <<-EOF
 <!doctype html>
 <html>
   <head>
@@ -17,4 +25,5 @@ File.open("#{ARGV.first}.html", "w") do |f|
   </body>
 </html>
 EOF
+  end
 end
