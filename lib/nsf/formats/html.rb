@@ -70,7 +70,7 @@ module Nsf
           ENHANCERS.each_pair do |tags, nsf_rep|
             if tags.include?(node_name)
               new_text = ""
-              node.children.each { |n| iterate.call(n, new_text) }
+              node.children.each { |n| iterate.call(n, blocks, new_text) }
               current_text << nsf_rep << new_text << nsf_rep
             end
           end
