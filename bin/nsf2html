@@ -8,11 +8,11 @@ ARGV.each do |filename|
     next
   end
 
-  content = File.read(ARGV.first)
+  content = File.read(filename)
 
   doc = Nsf::Document.from_nsf(content)
 
-  File.open("#{ARGV.first}.html", "w") do |f|
+  File.open("#{filename}.html", "w") do |f|
     f << <<-EOF
 <!doctype html>
 <html>
