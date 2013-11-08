@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+require "nsf"
+
+ARGV.each do |filename|
+  if !File.exist?(filename)
+    puts "Could not find #{filename}, skipping"
+    next
+  end
+
+  content = File.read(filename)
+
+  doc = Nsf::Document.from_text(content)
+
+  File.open("#{filename}.html", "w") do |f|
+    f << <<-EOF
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>#{doc.title}</title>
+  </head>
+  <body>
+    #{doc.to_html}
+  </body>
+</html>
+EOF
+  end
+end
