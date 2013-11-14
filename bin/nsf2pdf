@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require "nsf"
+
+ARGV.each do |filename|
+  if !File.exist?(filename)
+    puts "Could not find #{filename}, skipping"
+    next
+  end
+
+  content = File.read(filename)
+
+  doc = Nsf::Document.from_nsf(content)
+
+  File.open("#{filename}.pdf", "w") do |f|
+    f << doc.to_pdf
+  end
+end
