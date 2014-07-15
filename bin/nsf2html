@@ -13,17 +13,6 @@ ARGV.each do |filename|
   doc = Nsf::Document.from_nsf(content)
 
   File.open("#{filename}.html", "w") do |f|
-    f << <<-EOF
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>#{doc.title}</title>
-  </head>
-  <body>
-    #{doc.to_html}
-  </body>
-</html>
-EOF
+    f << doc.to_html
   end
 end

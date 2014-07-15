@@ -17,7 +17,7 @@ module Nsf
     BLOCK_INITIATING_TAGS = %w(article aside body blockquote dd dt header li nav p pre section td th ul)
 
     BLOCK_PLAIN_TEXT_TAGS = %w(pre plaintext listing xmp)
-    
+
     ENHANCERS = { %w(b strong) => "*", %(i em) => "_" }
 
     def self.from_html(text)
@@ -56,7 +56,7 @@ module Nsf
           paragraph_text = current_text.gsub(/[[:space:]]+/, ' ').strip
           blocks << Paragraph.new(paragraph_text) if paragraph_text.present?
           current_text.replace("")
-            
+
 
 #          if BLOCK_PLAIN_TEXT_TAGS.include?(node_name)
 #            blocks.concat(Nsf::Document.from_text(current_text).nodes)
@@ -65,7 +65,7 @@ module Nsf
 
           return
         end
-        
+
         if ENHANCERS.keys.flatten.include?(node_name)
           ENHANCERS.each_pair do |tags, nsf_rep|
             if tags.include?(node_name)
@@ -76,7 +76,7 @@ module Nsf
           end
           return
         end
-        
+
         #Pretend that the children of this node were siblings of this node (move them one level up the tree)
         if (TEXT_TAGS + BLOCK_PASSTHROUGH_TAGS).include?(node_name)
           node.children.each { |n| iterate.call(n, blocks, current_text) }
@@ -110,10 +110,21 @@ module Nsf
     end
 
     def to_html
-      nodes.map(&:to_html).join
+      <<-EOF
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>#{title}</title>
+  </head>
+  <body>
+    #{nodes.map(&:to_html).join}
+  </body>
+</html>
+EOF
     end
   end
-     
+
   class Paragraph
     def to_html_fragment(escape = true)
       out = (escape ? CGI.escapeHTML(@text) : @text).split(BOLD_ITALIC_REGEX)
@@ -122,7 +133,7 @@ module Nsf
         in_bold = false
         in_italic = false
 
-        out.map! do |element|        
+        out.map! do |element|
           if element == "*"
             in_bold = !in_bold
             in_bold ? "<b>" : "</b>" #Note that in_bold has been inverted, so this is inverted as well
