@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+require "nsf"
+require "pathname"
+
+ARGV.each do |path|
+  path = Pathname.new(path)
+
+  unless path.exist?
+    puts "Could not find #{path}, skipping"
+    next
+  end
+
+  doc = Nsf::Document.from_html(path.read)
+
+  File.open(path.sub_ext(".txt"), "w") do |f|
+    f << doc.to_nsf
+  end
+end
